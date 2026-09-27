@@ -145,20 +145,28 @@ export const ExamSelector: React.FC<ExamSelectorProps> = ({
                 )}
               </button>
 
-              <div className="flex items-start justify-between rounded-xl border border-dashed border-zinc-200 p-4 text-left opacity-60 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={() => onSubjectChange("class-10-math")}
+                className={`flex items-start justify-between rounded-xl border p-4 text-left transition-all ${
+                  selectedSubject === "class-10-math"
+                    ? "border-orange-500 bg-orange-50/50 ring-1 ring-orange-500 dark:bg-orange-950/30"
+                    : "border-zinc-200 hover:border-zinc-300 dark:border-zinc-800"
+                }`}
+              >
                 <div>
-                  <div className="flex items-center gap-2 font-bold text-zinc-700 dark:text-zinc-300">
-                    <BookOpen className="h-4 w-4 text-zinc-400" />
+                  <div className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                    <BookOpen className="h-4 w-4 text-orange-500" />
                     <span>Mathematics (Code 041)</span>
                   </div>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    Standard & Basic (Pre-loaded Indexing soon)
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    Standard & Basic • Identities & Geometry (80 Marks)
                   </p>
                 </div>
-                <span className="text-[10px] uppercase font-bold text-zinc-400 border border-zinc-300 dark:border-zinc-700 px-1.5 py-0.5 rounded">
-                  Coming Soon
-                </span>
-              </div>
+                {selectedSubject === "class-10-math" && (
+                  <CheckCircle2 className="h-5 w-5 text-orange-600" />
+                )}
+              </button>
             </>
           ) : (
             <>
@@ -185,20 +193,28 @@ export const ExamSelector: React.FC<ExamSelectorProps> = ({
                 )}
               </button>
 
-              <div className="flex items-start justify-between rounded-xl border border-dashed border-zinc-200 p-4 text-left opacity-60 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={() => onSubjectChange("class-12-chemistry")}
+                className={`flex items-start justify-between rounded-xl border p-4 text-left transition-all ${
+                  selectedSubject === "class-12-chemistry"
+                    ? "border-orange-500 bg-orange-50/50 ring-1 ring-orange-500 dark:bg-orange-950/30"
+                    : "border-zinc-200 hover:border-zinc-300 dark:border-zinc-800"
+                }`}
+              >
                 <div>
-                  <div className="flex items-center gap-2 font-bold text-zinc-700 dark:text-zinc-300">
-                    <BookOpen className="h-4 w-4 text-zinc-400" />
-                    <span>Chemistry (Code 043)</span>
+                  <div className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                    <BookOpen className="h-4 w-4 text-orange-500" />
+                    <span>Chemistry Theory (Code 043)</span>
                   </div>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    Organic Conversions & Name Reactions
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    Organic Conversions & Name Reactions (70 Marks)
                   </p>
                 </div>
-                <span className="text-[10px] uppercase font-bold text-zinc-400 border border-zinc-300 dark:border-zinc-700 px-1.5 py-0.5 rounded">
-                  Coming Soon
-                </span>
-              </div>
+                {selectedSubject === "class-12-chemistry" && (
+                  <CheckCircle2 className="h-5 w-5 text-orange-600" />
+                )}
+              </button>
             </>
           )}
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ExamDataset } from "@/types";
 import {
   Flame,
@@ -16,6 +16,11 @@ import {
   Layers,
   ArrowRight,
   Gift,
+  CheckCircle2,
+  Circle,
+  Target,
+  Award,
+  RotateCcw,
 } from "lucide-react";
 
 interface AnalysisResultsProps {
@@ -37,6 +42,45 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<"predictions" | "heatmap" | "fullpaper">("predictions");
   const [expandedSolutions, setExpandedSolutions] = useState<Record<string, boolean>>({});
+  const [preparedMap, setPreparedMap] = useState<Record<string, boolean>>({});
+  const [filterStatus, setFilterStatus] = useState<"all" | "prepared" | "unprepared">("all");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`paperpredict_prepared_${data.subject.id}`);
+      if (saved) setPreparedMap(JSON.parse(saved));
+      else setPreparedMap({});
+    } catch {
+      // safe fallback
+    }
+  }, [data.subject.id]);
+
+  const togglePrepared = (id: string) => {
+    setPreparedMap((prev) => {
+      const updated = { ...prev, [id]: !prev[id] };
+      try {
+        localStorage.setItem(`paperpredict_prepared_${data.subject.id}`, JSON.stringify(updated));
+      } catch {
+        // safe fallback
+      }
+      return updated;
+    });
+  };
+
+  const resetReadiness = () => {
+    setPreparedMap({});
+    try {
+      localStorage.removeItem(`paperpredict_prepared_${data.subject.id}`);
+    } catch {}
+  };
+
+  const totalQuestions = data.topPredictions.length;
+  const preparedCount = data.topPredictions.filter((q) => preparedMap[q.id]).length;
+  const readinessPct = totalQuestions > 0 ? Math.round((preparedCount / totalQuestions) * 100) : 0;
+  const estimatedScore = Math.min(
+    data.subject.totalMarks,
+    Math.round(data.subject.totalMarks * 0.45 + (readinessPct / 100) * (data.subject.totalMarks * 0.55))
+  );
 
   const toggleSolution = (id: string) => {
     setExpandedSolutions((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -128,6 +172,66 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({
         </div>
       </div>
 
+      {/* Interactive Exam Readiness Tracker */}
+      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400">
+                <Target className="h-4 w-4" />
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-zinc-900 dark:text-white">
+                  Exam Readiness & Revision Tracker
+                </h3>
+                <p className="text-xs text-zinc-500">
+                  Tick off questions as you prepare them. The engine calculates your projected exam score in real time.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-left sm:text-right">
+              <div className="text-xs font-bold text-zinc-900 dark:text-white">
+                {preparedCount} of {totalQuestions} Prepared ({readinessPct}%)
+              </div>
+              <div className="text-[11px] font-semibold text-orange-600 dark:text-orange-400 flex items-center sm:justify-end gap-1">
+                <Award className="h-3 w-3" />
+                <span>Projected Score: ~{estimatedScore} / {data.subject.totalMarks} Marks</span>
+              </div>
+            </div>
+
+            {preparedCount > 0 && (
+              <button
+                type="button"
+                onClick={resetReadiness}
+                title="Reset all checkboxes"
+                className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Dynamic Progress Bar */}
+        <div className="mt-4">
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+            <div
+              className={`h-full transition-all duration-500 ${
+                readinessPct >= 75
+                  ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                  : readinessPct >= 35
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500"
+                  : "bg-gradient-to-r from-rose-500 to-orange-500"
+              }`}
+              style={{ width: `${Math.max(5, readinessPct)}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Tabs Switcher */}
       <div className="flex border-b border-zinc-200 dark:border-zinc-800">
         <button
@@ -170,17 +274,63 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({
       {/* Tab 1: Top Predictions */}
       {activeTab === "predictions" && (
         <div className="space-y-4">
-          <div className="rounded-xl bg-amber-50 border border-amber-200/80 p-3.5 text-xs text-amber-900 dark:bg-amber-950/30 dark:border-amber-900/40 dark:text-amber-300 flex items-start gap-2.5">
-            <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-            <div>
-              <span className="font-semibold">Examiner Pattern Notice:</span> These questions carry the highest mathematical probability of appearing based on the 2019-2024 alternating rotation matrix. Focus on the required diagram labels and derivations first.
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex-1 rounded-xl bg-amber-50 border border-amber-200/80 p-3.5 text-xs text-amber-900 dark:bg-amber-950/30 dark:border-amber-900/40 dark:text-amber-300 flex items-start gap-2.5">
+              <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+              <div>
+                <span className="font-semibold">Examiner Pattern Notice:</span> These questions carry the highest mathematical probability based on alternating rotation matrix. Focus on required diagram labels and derivations first.
+              </div>
+            </div>
+
+            {/* Quick Readiness Filter Pills */}
+            <div className="flex items-center gap-1.5 self-start sm:self-auto shrink-0 bg-zinc-100 p-1 rounded-xl dark:bg-zinc-800">
+              <button
+                type="button"
+                onClick={() => setFilterStatus("all")}
+                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                  filterStatus === "all"
+                    ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white"
+                    : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+                }`}
+              >
+                All ({totalQuestions})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterStatus("unprepared")}
+                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                  filterStatus === "unprepared"
+                    ? "bg-white text-orange-700 shadow-sm dark:bg-zinc-700 dark:text-orange-300"
+                    : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+                }`}
+              >
+                To Revise ({totalQuestions - preparedCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterStatus("prepared")}
+                className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                  filterStatus === "prepared"
+                    ? "bg-white text-emerald-700 shadow-sm dark:bg-zinc-700 dark:text-emerald-300"
+                    : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+                }`}
+              >
+                Prepared ({preparedCount})
+              </button>
             </div>
           </div>
 
           <div className="space-y-4">
-            {data.topPredictions.map((q, idx) => {
+            {data.topPredictions
+              .filter((q) => {
+                if (filterStatus === "prepared") return preparedMap[q.id];
+                if (filterStatus === "unprepared") return !preparedMap[q.id];
+                return true;
+              })
+              .map((q, idx) => {
               const isLockedForUser = q.isLocked && !isUnlocked;
               const isExpanded = expandedSolutions[q.id];
+              const isPrepared = Boolean(preparedMap[q.id]);
 
               if (isLockedForUser) {
                 return (
@@ -213,7 +363,11 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({
               return (
                 <div
                   key={q.id}
-                  className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-6"
+                  className={`rounded-2xl border bg-white p-5 shadow-sm transition-all dark:bg-zinc-900 sm:p-6 ${
+                    isPrepared
+                      ? "border-emerald-300/80 bg-emerald-50/20 dark:border-emerald-800/50"
+                      : "border-zinc-200 dark:border-zinc-800"
+                  }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3 dark:border-zinc-800">
                     <div className="flex items-center gap-2">
@@ -226,9 +380,34 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                       <span className="text-xs font-medium text-zinc-500">Topic: {q.topic}</span>
                     </div>
 
-                    <div className="flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-extrabold text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">
-                      <Flame className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
-                      <span>{q.probability}% Probability</span>
+                    <div className="flex items-center gap-2">
+                      {/* Prepared Toggle Button */}
+                      <button
+                        type="button"
+                        onClick={() => togglePrepared(q.id)}
+                        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
+                          isPrepared
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 shadow-sm"
+                            : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700"
+                        }`}
+                      >
+                        {isPrepared ? (
+                          <>
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>Prepared ✓</span>
+                          </>
+                        ) : (
+                          <>
+                            <Circle className="h-3.5 w-3.5 text-zinc-400" />
+                            <span>Mark as Prepared</span>
+                          </>
+                        )}
+                      </button>
+
+                      <div className="flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-extrabold text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50">
+                        <Flame className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
+                        <span>{q.probability}% Probability</span>
+                      </div>
                     </div>
                   </div>
 
