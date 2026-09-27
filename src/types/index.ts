@@ -51,3 +51,15 @@ export interface ExamDataset {
     }[];
   };
 }
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  grade?: GradeLevel;
+  school?: string;
+  claimedFreeSubjectId: string | null;
+  paidUnlockedSubjects: string[];
+  preparedQuestions: Record<string, boolean>;
+  createdAt: string;
+}

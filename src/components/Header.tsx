@@ -1,15 +1,33 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Share2, Flame, GraduationCap, ShieldCheck, Gift } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import {
+  Sparkles,
+  Share2,
+  Flame,
+  GraduationCap,
+  ShieldCheck,
+  Gift,
+  User,
+  Cloud,
+  LogOut,
+} from "lucide-react";
 
 interface HeaderProps {
   onShareWhatsApp: () => void;
   onOpenPricing: () => void;
+  onOpenAuth: () => void;
   freeClaimed: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onShareWhatsApp, onOpenPricing, freeClaimed }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onShareWhatsApp,
+  onOpenPricing,
+  onOpenAuth,
+  freeClaimed,
+}) => {
+  const { user, logout } = useAuth();
   return (
     <header className="sticky top-0 z-40 w-full border-b border-zinc-200/80 bg-white/90 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/90">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
@@ -69,6 +87,32 @@ export const Header: React.FC<HeaderProps> = ({ onShareWhatsApp, onOpenPricing, 
               </>
             )}
           </button>
+
+          {/* User Auth Profile or Sign In Button */}
+          {user ? (
+            <div className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-800 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 shadow-sm">
+              <User className="h-3.5 w-3.5 text-orange-500" />
+              <span className="max-w-[70px] sm:max-w-[100px] truncate">{user.name.split(" ")[0]}</span>
+              <button
+                type="button"
+                onClick={logout}
+                title="Sign Out"
+                className="ml-1 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 transition"
+              >
+                <LogOut className="h-3 w-3" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenAuth}
+              className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200"
+            >
+              <Cloud className="h-3.5 w-3.5 text-blue-500" />
+              <span className="hidden sm:inline">Save Progress</span>
+              <span className="sm:hidden">Save</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

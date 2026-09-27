@@ -7,6 +7,8 @@ import { AnalysisProgress } from "@/components/AnalysisProgress";
 import { AnalysisResults } from "@/components/AnalysisResults";
 import { PrintablePaper } from "@/components/PrintablePaper";
 import { PaymentModal } from "@/components/PaymentModal";
+import { AuthModal } from "@/components/AuthModal";
+import { useAuth } from "@/context/AuthContext";
 import { CBSE_DATASETS } from "@/data/cbseData";
 import { GradeLevel, SourceMode } from "@/types";
 import {
@@ -21,6 +23,8 @@ import {
 } from "lucide-react";
 
 export default function Home() {
+  const { user, updateUserData } = useAuth();
+
   const [selectedGrade, setSelectedGrade] = useState<GradeLevel>("class-10");
   const [selectedSubject, setSelectedSubject] = useState<string>("class-10-science");
   const [sourceMode, setSourceMode] = useState<SourceMode>("ai-archive");
@@ -28,24 +32,31 @@ export default function Home() {
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   // 1-Time Free Subject & Paid Unlocks
   const [claimedFreeSubjectId, setClaimedFreeSubjectId] = useState<string | null>(null);
   const [paidUnlockedSubjects, setPaidUnlockedSubjects] = useState<string[]>([]);
   const [showClaimToast, setShowClaimToast] = useState(false);
 
-  // Load from localStorage on client mount
+  // Sync with user profile if logged in or load from localStorage on client mount
   useEffect(() => {
-    try {
-      const savedFree = localStorage.getItem("paperpredict_free_subject_id");
-      if (savedFree) setClaimedFreeSubjectId(savedFree);
+    if (user) {
+      if (user.claimedFreeSubjectId) setClaimedFreeSubjectId(user.claimedFreeSubjectId);
+      if (user.paidUnlockedSubjects?.length) setPaidUnlockedSubjects(user.paidUnlockedSubjects);
+      if (user.grade) setSelectedGrade(user.grade);
+    } else {
+      try {
+        const savedFree = localStorage.getItem("paperpredict_free_subject_id");
+        if (savedFree) setClaimedFreeSubjectId(savedFree);
 
-      const savedPaid = localStorage.getItem("paperpredict_paid_subjects");
-      if (savedPaid) setPaidUnlockedSubjects(JSON.parse(savedPaid));
-    } catch {
-      // LocalStorage fallback for private browsing
+        const savedPaid = localStorage.getItem("paperpredict_paid_subjects");
+        if (savedPaid) setPaidUnlockedSubjects(JSON.parse(savedPaid));
+      } catch {
+        // LocalStorage fallback for private browsing
+      }
     }
-  }, []);
+  }, [user]);
 
   const currentDataset = CBSE_DATASETS[selectedSubject] || CBSE_DATASETS["class-10-science"];
 
@@ -75,6 +86,7 @@ export default function Home() {
     // If student has NOT claimed their 1 free subject yet, automatically grant this subject for free!
     if (!claimedFreeSubjectId) {
       setClaimedFreeSubjectId(selectedSubject);
+      updateUserData({ claimedFreeSubjectId: selectedSubject });
       try {
         localStorage.setItem("paperpredict_free_subject_id", selectedSubject);
       } catch {
@@ -93,6 +105,7 @@ export default function Home() {
       updatedPaid = Array.from(new Set([...paidUnlockedSubjects, selectedSubject]));
     }
     setPaidUnlockedSubjects(updatedPaid);
+    updateUserData({ paidUnlockedSubjects: updatedPaid });
     try {
       localStorage.setItem("paperpredict_paid_subjects", JSON.stringify(updatedPaid));
     } catch {
@@ -113,6 +126,7 @@ export default function Home() {
       <Header
         onShareWhatsApp={handleShareWhatsApp}
         onOpenPricing={() => setIsPaymentOpen(true)}
+        onOpenAuth={() => setIsAuthOpen(true)}
         freeClaimed={Boolean(claimedFreeSubjectId)}
       />
 
@@ -352,6 +366,12 @@ export default function Home() {
           onClose={() => setIsPrintOpen(false)}
         />
       )}
+
+      {/* Student Account & Cloud Sync Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+      />
 
       {/* Free Sample Claimed Notification Toast */}
       {showClaimToast && (
